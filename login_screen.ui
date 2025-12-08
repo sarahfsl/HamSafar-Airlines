@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>800</width>
+    <height>600</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>MainWindow</string>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <widget class="QGroupBox" name="groupBox">
+    <property name="geometry">
+     <rect>
+      <x>230</x>
+      <y>20</y>
+      <width>291</width>
+      <height>291</height>
+     </rect>
+    </property>
+    <property name="title">
+     <string/>
+    </property>
+    <widget class="QPushButton" name="user_pushbutton">
+     <property name="geometry">
+      <rect>
+       <x>30</x>
+       <y>10</y>
+       <width>101</width>
+       <height>21</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>User </string>
+     </property>
+    </widget>
+    <widget class="QPushButton" name="admin_pushbutton">
+     <property name="geometry">
+      <rect>
+       <x>170</x>
+       <y>10</y>
+       <width>91</width>
+       <height>21</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Admin</string>
+     </property>
+    </widget>
+    <widget class="QLineEdit" name="member_ID_line_edit">
+     <property name="geometry">
+      <rect>
+       <x>30</x>
+       <y>120</y>
+       <width>241</width>
+       <height>21</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Enter</string>
+     </property>
+    </widget>
+    <widget class="QLabel" name="memberID_label">
+     <property name="geometry">
+      <rect>
+       <x>30</x>
+       <y>90</y>
+       <width>301</width>
+       <height>31</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Member ID/Email/Passport</string>
+     </property>
+    </widget>
+    <widget class="QLabel" name="heading_label">
+     <property name="geometry">
+      <rect>
+       <x>-40</x>
+       <y>50</y>
+       <width>321</width>
+       <height>31</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>                              Welcome to Hamsafar Airlines!</string>
+     </property>
+    </widget>
+    <widget class="QLabel" name="pass_label">
+     <property name="geometry">
+      <rect>
+       <x>30</x>
+       <y>170</y>
+       <width>191</width>
+       <height>16</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Password</string>
+     </property>
+    </widget>
+    <widget class="QLineEdit" name="password_line_edit">
+     <property name="geometry">
+      <rect>
+       <x>30</x>
+       <y>190</y>
+       <width>241</width>
+       <height>21</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Enter</string>
+     </property>
+    </widget>
+    <widget class="QPushButton" name="log">
+     <property name="geometry">
+      <rect>
+       <x>85</x>
+       <y>226</y>
+       <width>131</width>
+       <height>21</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Login</string>
+     </property>
+    </widget>
+    <widget class="QLabel" name="Not_member_label">
+     <property name="geometry">
+      <rect>
+       <x>40</x>
+       <y>260</y>
+       <width>131</width>
+       <height>21</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Not a member yet? </string>
+     </property>
+    </widget>
+    <widget class="QPushButton" name="signup_pushbutton">
+     <property name="geometry">
+      <rect>
+       <x>160</x>
+       <y>260</y>
+       <width>81</width>
+       <height>21</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>SignUp</string>
+     </property>
+    </widget>
+   </widget>
+  </widget>
+  <widget class="QMenuBar" name="menubar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>800</width>
+     <height>18</height>
+    </rect>
+   </property>
+  </widget>
+  <widget class="QStatusBar" name="statusbar"/>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>
