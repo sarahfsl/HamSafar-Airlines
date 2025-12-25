@@ -1,5 +1,7 @@
-
-USE test;
+CREATE DATABASE FlightReservationSystem;
+GO
+    
+USE FlightReservationSystem;
 GO
 
 ----------------------------------------------------
@@ -230,3 +232,4 @@ CREATE TABLE LayOver (
     FOREIGN KEY (FlightID_2) REFERENCES Flight(FlightID),
     FOREIGN KEY (LayoverCityID) REFERENCES Cities(CityID)
 );
+
