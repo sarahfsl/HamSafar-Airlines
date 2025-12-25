@@ -1,4 +1,4 @@
-USE test;
+USE FlightReservationSystem;
 GO
 
 
@@ -253,5 +253,6 @@ SET IDENTITY_INSERT LayOver OFF;
 ----------------------------------------------------
 -- Use COMMIT to save data permanently
 -- Use ROLLBACK to test without saving
+
 
 -- COMMIT TRANSACTION;
