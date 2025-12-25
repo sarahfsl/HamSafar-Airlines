@@ -156,6 +156,9 @@ class SignUp_Screen(QtWidgets.QMainWindow):
                 FullName = self.fullName.text() 
                 newpassword = self.password1.text() #enter password
                 password=self.password2.text() #confirm password
+
+
+                
                 gender = self.gender.currentText()
                 passportnumber = self.passportNo.text()
                 email = self.email.text()
@@ -167,9 +170,9 @@ class SignUp_Screen(QtWidgets.QMainWindow):
                 PhoneNumber = self.PhoneNo.text()
 
         # Replace these with your own database connection details
-                server = 'DESKTOP-4UKQNMN\\HUSTUDENTSQL'
-                database = 'FlightReservationSystem'  # Name of your Northwind database
-                use_windows_authentication = True  # Set to True to use Windows Authentication
+                # server = 'DESKTOP-4UKQNMN\\HUSTUDENTSQL'
+                # database = 'FlightReservationSystem'  # Name of your Northwind database
+                # use_windows_authentication = True  # Set to True to use Windows Authentication
                 # username = 'your_username'  # Specify a username if not using Windows Authentication
                 # password = 'your_password'  # Specify a password if not using Windows Authentication
 
@@ -214,7 +217,7 @@ class SignUp_Screen(QtWidgets.QMainWindow):
                         QtWidgets.QMessageBox.warning(self, "Error", "Select your Gender")
                 elif Nationality=='':
                         QtWidgets.QMessageBox.warning(self, "Error", "Select your Nationality")
-                elif len(passportnumber)<10 or not passportnumber.isalnum():
+                elif len(passportnumber)<10 or not passportnumber.isdigit():
                        QtWidgets.QMessageBox.warning(self, "Error", "Enter valid Passport Number")
                 elif len(email)<10 or '@' not in email:
                        QtWidgets.QMessageBox.warning(self, "Error", "Enter valid email address")

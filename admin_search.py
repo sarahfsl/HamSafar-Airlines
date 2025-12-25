@@ -184,65 +184,65 @@ class AdminSearchWindow(QtWidgets.QMainWindow):
         self.update_window = AdminUpdateWindow(schedule_id)
         self.update_window.show()
 
+ 
     def cancel_flight(self):
-        """Cancel the selected flight schedule"""
         row = self.tableWidget.currentRow()
         if row < 0:
             QMessageBox.warning(self, "No Selection", "Please select a flight to cancel.")
             return
 
-        # ScheduleID is in column 0
         schedule_id_item = self.tableWidget.item(row, 0)
-        # Status is in  column  8
         status_item = self.tableWidget.item(row, 8)
 
         if not schedule_id_item:
-            QMessageBox.warning(self, "Error", "Cannot read Schedule ID from selected row.")
             return
 
         schedule_id = schedule_id_item.text()
         current_status = status_item.text() if status_item else ""
 
-        # Prevent cancelling already cancelled flights
         if current_status.lower() == "cancelled":
-            QMessageBox.information(self, "Already Cancelled", 
-                                    f"Schedule ID {schedule_id} is already cancelled.")
+            QMessageBox.information(self, "Already Cancelled", "This flight is already cancelled.")
             return
 
-        # Confirmation dialog 
         reply = QMessageBox.question(
-            self,
-            "Confirm Cancellation",
-            f"Are you sure you want to cancel Schedule ID {schedule_id}?\n\n",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-            QMessageBox.StandardButton.No  # Default button
+            self, "Confirm Cancellation",
+            f"Are you sure you want to cancel Schedule ID {schedule_id}?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
         )
 
         if reply != QMessageBox.StandardButton.Yes:
-            return  # User clicked No
+            return
 
-        # Perform the cancellation
         conn = get_connection()
         cursor = conn.cursor()
         try:
-            cursor.execute(
-                "UPDATE FlightSchedule SET Status = 'Cancelled' WHERE ScheduleID = ?",
-                (schedule_id,)
-            )
-            
-            if cursor.rowcount == 0:
-                QMessageBox.warning(self, "Not Found", f"No schedule found with ID {schedule_id}.")
-                return
+            # Get old status (it's current_status)
+            old_status = current_status
+            new_status = "Cancelled"
+            admin_id = 1  # ← Replace with actual logged-in admin ID
+
+            remarks = "Flight cancelled by admin"
+
+            # Update status
+            cursor.execute("UPDATE FlightSchedule SET Status = 'Cancelled' WHERE ScheduleID = ?", (schedule_id,))
+
+            # Log the change
+            cursor.execute("""
+                INSERT INTO FlightStatusLog 
+                (LogID, ScheduleID, AdminID, OldStatus, NewStatus, Remarks, UpdatedAt)
+                VALUES (
+                    (SELECT ISNULL(MAX(LogID), 0) + 1 FROM FlightStatusLog),
+                    ?, ?, ?, ?, ?, GETDATE()
+                )
+            """, (schedule_id, admin_id, old_status, new_status, remarks))
 
             conn.commit()
-            QMessageBox.information(self, "Success", 
-                                    f"Schedule ID {schedule_id} has been cancelled successfully.")
-            self.search_flights()  # Refresh the table
+            QMessageBox.information(self, "Success", "Flight cancelled and logged.")
+            self.search_flights()
 
         except Exception as e:
             conn.rollback()
-            QMessageBox.critical(self, "Database Error", 
-                                f"Failed to cancel flight:\n{e}")
+            QMessageBox.critical(self, "Error", f"Failed to cancel:\n{e}")
         finally:
             conn.close()
 

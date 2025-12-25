@@ -83,62 +83,6 @@ class AdminUpdateWindow(QtWidgets.QMainWindow):
         self.statusCombo.clear()
         self.statusCombo.addItems(statuses)
 
-    def save_updates(self):
-        """Save changes back to database"""
-        if not self.schedule_id:
-            return
-
-        try:
-            flight_number = self.flightNum.text().strip()
-            base_fare = float(self.basefare.text().strip())
-
-            aircraft_id = self.aircraftCombo.currentData()
-            dep_airport_id = self.depAirportCombo.currentData()
-            arr_airport_id = self.ArrivalAirportCombo.currentData()
-
-            dep_date = self.depDate.text().strip()
-            dep_time = self.deptime.text().strip()
-            arr_date = self.ArrivalDate.text().strip()
-            arr_time = self.Arrivaltime.text().strip()
-            status = self.statusCombo.currentText()
-
-            # Basic validation
-            if not all([flight_number, dep_date, arr_date, dep_time, arr_time]):
-                QMessageBox.warning(self, "Required", "All fields must be filled.")
-                return
-
-            conn = get_connection()
-            cursor = conn.cursor()
-            try:
-                # Update Flight
-                cursor.execute("""
-                    UPDATE Flight SET
-                        FlightNumber = ?, BaseFare = ?, AircraftID = ?,
-                        DepartureAirportID = ?, ArrivalAirportID = ?
-                    WHERE FlightID = (SELECT FlightID FROM FlightSchedule WHERE ScheduleID = ?)
-                """, (flight_number, base_fare, aircraft_id, dep_airport_id, arr_airport_id, self.schedule_id))
-
-                # Update FlightSchedule
-                cursor.execute("""
-                    UPDATE FlightSchedule SET
-                        DepartureDate = ?, DepartureTime = ?,
-                        ArrivalDate = ?, ArrivalTime = ?, Status = ?
-                    WHERE ScheduleID = ?
-                """, (dep_date, dep_time, arr_date, arr_time, status, self.schedule_id))
-
-                conn.commit()
-                QMessageBox.information(self, "Success", "Flight updated successfully!")
-                self.close()
-
-            except Exception as e:
-                conn.rollback()
-                QMessageBox.critical(self, "Error", f"Update failed:\n{e}")
-            finally:
-                conn.close()
-
-        except ValueError:
-            QMessageBox.warning(self, "Invalid", "Base Fare must be a number.")
-
     def load_flight_data(self, schedule_id):
         """Load selected flight's data into all widgets, including From/To cities"""
         conn = get_connection()
@@ -207,3 +151,140 @@ class AdminUpdateWindow(QtWidgets.QMainWindow):
             self.close()
         finally:
             conn.close()
+
+
+    def save_updates(self):
+        """Save changes back to database with logging and duration recalc"""
+        if not self.schedule_id:
+            return
+
+        try:
+            # === Get and validate inputs ===
+            flight_number = self.flightNum.text().strip()
+            if not flight_number:
+                QMessageBox.warning(self, "Required", "Flight Number is required.")
+                return
+
+            try:
+                base_fare = float(self.basefare.text().strip())
+                if base_fare <= 0:
+                    raise ValueError
+            except ValueError:
+                QMessageBox.warning(self, "Invalid", "Base Fare must be a positive number.")
+                return
+
+            aircraft_id = self.aircraftCombo.currentData()
+            dep_airport_id = self.depAirportCombo.currentData()
+            arr_airport_id = self.ArrivalAirportCombo.currentData()
+
+            if not aircraft_id or not dep_airport_id or not arr_airport_id:
+                QMessageBox.warning(self, "Required", "Please select aircraft and airports.")
+                return
+
+            if dep_airport_id == arr_airport_id:
+                QMessageBox.warning(self, "Invalid", "Departure and arrival airports cannot be the same.")
+                return
+
+            # Date & Time
+            dep_date = self.depDate.text().strip()
+            arr_date = self.ArrivalDate.text().strip()
+            dep_time = self.deptime.text().strip()
+            arr_time = self.Arrivaltime.text().strip()
+
+            if not all([dep_date, arr_date, dep_time, arr_time]):
+                QMessageBox.warning(self, "Required", "All date and time fields are required.")
+                return
+
+            # Validate formats
+            import re
+            date_pattern = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+            time_pattern = re.compile(r"^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$")
+
+            if not date_pattern.match(dep_date) or not date_pattern.match(arr_date):
+                QMessageBox.warning(self, "Invalid Format", "Dates must be YYYY-MM-DD.")
+                return
+            if not time_pattern.match(dep_time) or not time_pattern.match(arr_time):
+                QMessageBox.warning(self, "Invalid Time", "Times must be HH:MM (e.g., 14:30).")
+                return
+
+            # === Check arrival after departure + calculate duration ===
+            from datetime import datetime
+
+            dep_dt_str = f"{dep_date} {dep_time}"
+            arr_dt_str = f"{arr_date} {arr_time}"
+
+            try:
+                dep_dt = datetime.strptime(dep_dt_str, "%Y-%m-%d %H:%M")
+                arr_dt = datetime.strptime(arr_dt_str, "%Y-%m-%d %H:%M")
+
+                if arr_dt <= dep_dt:
+                    QMessageBox.warning(self, "Invalid Schedule",
+                                        "Arrival date & time must be AFTER departure.")
+                    return
+
+                duration_minutes = int((arr_dt - dep_dt).total_seconds() / 60)
+
+            except ValueError:
+                QMessageBox.warning(self, "Invalid Date/Time", "Please check date/time format.")
+                return
+
+            new_status = self.statusCombo.currentText()
+
+            # === Database operations ===
+            conn = get_connection()
+            cursor = conn.cursor()
+
+            try:
+                # Get old status for logging
+                cursor.execute("SELECT Status FROM FlightSchedule WHERE ScheduleID = ?", (self.schedule_id,))
+                old_status_row = cursor.fetchone()
+                if not old_status_row:
+                    QMessageBox.warning(self, "Error", "Schedule not found.")
+                    return
+                old_status = old_status_row[0]
+
+                # Update Flight table
+                cursor.execute("""
+                    UPDATE Flight SET
+                        FlightNumber = ?, BaseFare = ?, AircraftID = ?,
+                        DepartureAirportID = ?, ArrivalAirportID = ?
+                    WHERE FlightID = (SELECT FlightID FROM FlightSchedule WHERE ScheduleID = ?)
+                """, (flight_number, base_fare, aircraft_id, dep_airport_id, arr_airport_id, self.schedule_id))
+
+                # Update FlightSchedule with new times, duration, and status
+                cursor.execute("""
+                    UPDATE FlightSchedule SET
+                        DepartureDate = ?, DepartureTime = ?,
+                        ArrivalDate = ?, ArrivalTime = ?,
+                        Duration = ?, Status = ?
+                    WHERE ScheduleID = ?
+                """, (dep_date, dep_time, arr_date, arr_time, duration_minutes, new_status, self.schedule_id))
+
+                # === Log status change if it changed ===
+                if old_status != new_status:
+                    admin_id = 1  # ← Replace with actual logged-in AdminID
+                    remarks = f"Status changed from '{old_status}' to '{new_status}' via update"
+
+                    cursor.execute("""
+                        INSERT INTO FlightStatusLog 
+                        (LogID, ScheduleID, AdminID, OldStatus, NewStatus, Remarks, UpdatedAt)
+                        VALUES (
+                            (SELECT ISNULL(MAX(LogID), 0) + 1 FROM FlightStatusLog),
+                            ?, ?, ?, ?, ?, GETDATE()
+                        )
+                    """, (self.schedule_id, admin_id, old_status, new_status, remarks))
+
+                conn.commit()
+                QMessageBox.information(self, "Success",
+                                        f"Flight updated successfully!\n"
+                                        f"New duration: {duration_minutes} minutes")
+                self.close()
+
+            except Exception as e:
+                conn.rollback()
+                QMessageBox.critical(self, "Database Error", f"Update failed:\n{e}")
+            finally:
+                conn.close()
+
+        except Exception as e:
+            QMessageBox.critical(self, "Error", str(e))

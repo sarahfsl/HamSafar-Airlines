@@ -1,5 +1,7 @@
 import sys
 from SignUp import *
+from search import *
+from admin_dashboard import *
 import re
 import pyodbc
 from PyQt6 import QtWidgets, uic
@@ -11,7 +13,7 @@ class LoginScreen(QtWidgets.QMainWindow):
         
         # Load the UI file created in Qt Designer
         uic.loadUi('login_screen.ui', self)  # Replace with your .ui file name
-        
+
         self.connection_string = connection_string
         self.selected_role = None  # Track if User or Admin was selected
         
@@ -76,8 +78,8 @@ class LoginScreen(QtWidgets.QMainWindow):
         if self.login_btn:
             self.login_btn.setEnabled(True)
         
-        if self.signup_btn:
-            self.signup_btn.setEnabled(True)
+        # if self.signup_btn:
+        #     self.signup_btn.setEnabled(True)
         
         # Set focus to identifier field
         if self.id_entry:
@@ -86,7 +88,7 @@ class LoginScreen(QtWidgets.QMainWindow):
     def select_user_role(self):
         """Handle User button click"""
         self.selected_role = 'user'
-        print("User role selected")
+        # print("User role selected")
         
         # Visual feedback - highlight selected button
         if self.user_btn:
@@ -96,6 +98,9 @@ class LoginScreen(QtWidgets.QMainWindow):
         
         # Enable the form
         # self.admin_btn.setEnabled(False)
+        if self.signup_btn:
+            self.signup_btn.setEnabled(True)
+
         self.enable_form()
     
     def select_admin_role(self):
@@ -111,6 +116,8 @@ class LoginScreen(QtWidgets.QMainWindow):
         
         # Enable the form
         # self.user_btn.setEnabled(False)
+        if self.signup_btn:
+            self.signup_btn.setEnabled(False)
         self.enable_form()
     
     def validate_passport(self, passport):
@@ -207,20 +214,86 @@ class LoginScreen(QtWidgets.QMainWindow):
             
             if result['user_type'] == 'user':
                 QMessageBox.information(self, "Login Successful", 
-                                      f"Welcome User!\nUser ID: {result['data']['user_id']}")
-                # self.open_search_flight(result['data'])
+                                      f"Welcome!")
+                # self.open_search_flight(result['data'])3
                 print(f"User Data: {result['data']}")
+                # def booking_id():
+                #     return result['data']['user_id']
+                # booking_id = self.create_new_booking(result['data']['user_id'])
+                identifier = self.member_ID_line_edit.text().strip()
+                password = self.password_line_edit.text()
+
+                query = """
+                SELECT UserID
+                FROM [User]
+                WHERE
+                (
+                    Email = ?
+                    OR PhoneNumber = ?
+                    OR PassportNumber = ?
+                )
+                AND [Password] = ?
+                """
+
+                conn = pyodbc.connect(self.connection_string)
+                cursor = conn.cursor()
+
+                cursor.execute(
+                    query,
+                    (identifier, identifier, identifier, password)
+                )
+
+                row = cursor.fetchone()
+                conn.close()
+
+                if not row:
+                    QtWidgets.QMessageBox.warning(self, "Login Failed", "Invalid credentials")
+                    return
+
+                booking_id = row[0]  # ✅ THIS IS CORRECT
+                print("Logged-in User ID:", booking_id)
+                user_id=booking_id
+                self.master_form = SearchScreen(
+                    connection_string=self.connection_string,
+                    # user_id=user_id
+                    booking_id=booking_id
+                    # user_data=result['data']
+                )
+                self.master_form.show()
+
+                self.close()
+                # self.master_form = SearchScreen(CONNECTION_STRING)
+                # self.master_form.show()
                 
             elif result['user_type'] == 'admin':
                 QMessageBox.information(self, "Login Successful", 
                                       f"Welcome Admin!\nAdmin ID: {result['data']['admin_id']}")
                 # self.open_admin_search(result['data'])
                 print(f"Admin Data: {result['data']}")
+                self.master_form = AdminDashboard()
+                self.master_form.show()
         else:
             # This is the critical part - show error message from authenticate function
             QMessageBox.critical(self, "Login Failed", result['message'])
             print(f"Login failed: {result['message']}")  # Debug print
     
+    def create_new_booking(self, user_id):
+        conn = pyodbc.connect(self.connection_string)
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            INSERT INTO Booking (userID, bookingDate, status, totalPrice)
+            OUTPUT INSERTED.bookingID
+            VALUES (?, GETDATE(), 'IN_PROGRESS', 0)
+        """, user_id)
+
+        booking_id = cursor.fetchone()[0]
+
+        conn.commit()
+        conn.close()
+
+        return booking_id
+
     def authenticate(self, identifier, password, input_type):
         """
         Authenticate user credentials and determine account type
@@ -448,61 +521,10 @@ class LoginScreen(QtWidgets.QMainWindow):
                     conn.close()
                 except:
                     pass
-    # def open_Signup_form(self):
-    #     self.master_form = SignUp_Screen()
-    #     self.master_form.show()
     
-    # -------------------------------
-    # NAVIGATION METHODS (COMMENTED OUT - NOT INTEGRATED YET)
-    # -------------------------------
-    
-    # def open_search_flight(self, user_data):
-    #     """Navigate to SearchFlight screen for regular users"""
-    #     print(f"Opening SearchFlight screen for User ID: {user_data['user_id']}")
-    #     
-    #     # Import your SearchFlight screen
-    #     from search_flight import SearchFlightScreen
-    #     
-    #     self.search_flight_window = SearchFlightScreen(user_data, self.connection_string)
-    #     self.search_flight_window.show()
-    #     self.close()  # Close login window
-    
-    # def open_admin_search(self, admin_data):
-    #     """Navigate to AdminSearch screen for admins"""
-    #     print(f"Opening AdminSearch screen for Admin ID: {admin_data['admin_id']}")
-    #     
-    #     # Import your AdminSearch screen
-    #     from admin_search import AdminSearchScreen
-    #     
-    #     self.admin_search_window = AdminSearchScreen(admin_data, self.connection_string)
-    #     self.admin_search_window.show()
-    #     self.close()  # Close login window
     
     def open_signup(self):
         self.master_form = SignUp_Screen()
         self.master_form.show()
     
-        # """Navigate to SignUp screen - NOT INTEGRATED YET"""
-        # QMessageBox.information(self, "SignUp", "SignUp screen is not integrated yet.")
-        # print("SignUp button clicked - screen not integrated yet")
-        
-        # Uncomment when SignUp screen is ready:
-        # from signup import SignUpScreen
-        # self.signup_window = SignUpScreen(self.connection_string)
-        # self.signup_window.show()
-        # self.close()
 
-
-# Main execution
-if __name__ == "__main__":
-    # Database connection string for SQL Server 2019
-    CONNECTION_STRING = (
-        "Driver={ODBC Driver 17 for SQL Server};"
-        "Server=DESKTOP-4UKQNMN\\HUSTUDENTSQL;"  # Replace with your server name
-        "Database=FlightReservationSystem;"  # Replace with your database name
-        "Trusted_Connection=yes;"
-    )
-    
-    app = QtWidgets.QApplication(sys.argv)
-    window = LoginScreen(CONNECTION_STRING)
-    sys.exit(app.exec())

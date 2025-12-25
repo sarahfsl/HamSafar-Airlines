@@ -1,8 +1,10 @@
 import pyodbc
 
 # Database connection configuration
-server = 'localhost\SQLSERVER1'
-database = 'FlightManagementSystem'
+# server = 'localhost\SQLSERVER1'
+# database = 'FlightManagementSystem'
+server = 'DESKTOP-4UKQNMN\\HUSTUDENTSQL'
+database = 'FlightReservationSystem' 
 use_windows_auth = True
 username = 'sa'  # Only needed if not using Windows auth
 password = '$ql123'  # Only needed if not using Windows auth

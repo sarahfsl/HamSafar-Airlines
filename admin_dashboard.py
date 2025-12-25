@@ -1,8 +1,9 @@
 from PyQt6 import QtWidgets, uic
 import sys
 
-from admin_add import AdminAddWindow
-from admin_search import AdminSearchWindow
+
+from admin_add import *
+from admin_search import *
 
 class AdminDashboard(QtWidgets.QMainWindow):
     def __init__(self):

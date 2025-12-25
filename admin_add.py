@@ -2,6 +2,7 @@ from PyQt6 import QtWidgets, uic
 from PyQt6.QtWidgets import QMessageBox
 from PyQt6.QtCore import QDateTime
 from db import get_connection
+from datetime import datetime
 
 
 class AdminAddWindow(QtWidgets.QMainWindow):
@@ -82,6 +83,32 @@ class AdminAddWindow(QtWidgets.QMainWindow):
         self.statusCombo.clear()
         self.statusCombo.addItems(statuses)
         self.statusCombo.setCurrentText("scheduled")
+
+    def datetime_difference(self,start_date, start_time, end_date, end_time):
+        """
+        Returns the difference between two date-time values
+        as (days, hours, minutes)
+        """
+
+        start_dt = datetime.strptime(
+            f"{start_date} {start_time}", "%Y-%m-%d %H:%M"
+        )
+        end_dt = datetime.strptime(
+            f"{end_date} {end_time}", "%Y-%m-%d %H:%M"
+        )
+
+        if end_dt < start_dt:
+            raise ValueError("End date/time must be after start date/time")
+
+        diff = end_dt - start_dt
+
+        days = diff.days
+        hours, remainder = divmod(diff.seconds, 3600)
+        minutes = remainder // 60
+
+        return int((24*days)+hours+(minutes/60))
+
+
 
     def add_flight(self):
         try:
@@ -173,13 +200,12 @@ class AdminAddWindow(QtWidgets.QMainWindow):
                 # Insert into Flight
                 cursor.execute("""
                     INSERT INTO Flight 
-                    (FlightID, FlightNumber, AircraftID, DepartureAirportID, ArrivalAirportID, BaseFare)
-                    VALUES (
-                        (SELECT ISNULL(MAX(FlightID), 0) + 1 FROM Flight),
+                    (FlightNumber, AircraftID, DepartureAirportID, ArrivalAirportID, BaseFare)
+                    VALUES 
+                        (
                         ?, ?, ?, ?, ?
                     )
                 """, (flight_number, aircraft_id, dep_airport_id, arr_airport_id, base_fare))
-
                 # Get new FlightID
                 cursor.execute("SELECT MAX(FlightID) FROM Flight")
                 new_flight_id = cursor.fetchone()[0]
@@ -187,18 +213,37 @@ class AdminAddWindow(QtWidgets.QMainWindow):
                 # Insert into FlightSchedule with calculated duration
                 cursor.execute("""
                     INSERT INTO FlightSchedule 
-                    (ScheduleID, FlightID, DepartureDate, DepartureTime, ArrivalDate, ArrivalTime, Duration, Status)
-                    VALUES (
-                        (SELECT ISNULL(MAX(ScheduleID), 0) + 1 FROM FlightSchedule),
-                        ?, ?, ?, ?, ?, ?, ?
+                    (FlightID, DepartureDate, DepartureTime, ArrivalDate, ArrivalTime, Duration, Status)
+                    VALUES 
+                        (
+                        ?, ?, ?, ?, ?, ?,?
                     )
-                """, (new_flight_id, dep_date, dep_time, arr_date, arr_time, duration_minutes, status))
+                """, (new_flight_id, dep_date, dep_time, arr_date, arr_time,self.datetime_difference(dep_date,dep_time,arr_date,arr_time) , status))  # Duration = 0 or calculate if you want
+
+                # === GET THE NEW ScheduleID ===
+                cursor.execute("SELECT MAX(ScheduleID) FROM FlightSchedule")
+                new_schedule_id = cursor.fetchone()[0]
+
+                # === LOG THE FLIGHT CREATION ===
+                admin_id = 1  # ← Change to real logged-in admin ID later
+                old_status = None  # or "New"
+                new_status = status
+                remarks = f"New flight '{flight_number}' created"
+
+                cursor.execute("""
+                    INSERT INTO FlightStatusLog 
+                    (ScheduleID, AdminID, OldStatus, NewStatus, Remarks, UpdatedAt)
+                    VALUES (
+                        ?, ?, ?, ?, ?, GETDATE()
+                    )
+                """, (new_schedule_id, admin_id, old_status, new_status, remarks))
 
                 conn.commit()
                 QMessageBox.information(self, "Success", 
                     f"Flight {flight_number} added successfully!\n"
+                    f"Schedule ID: {new_schedule_id}\n"
                     f"Duration: {duration_minutes} minutes\n"
-                    f"{dep_date} {dep_time} → {arr_date} {arr_time}")
+                    f"Creation logged in status history.")
                 self.close()
 
             except Exception as e:
