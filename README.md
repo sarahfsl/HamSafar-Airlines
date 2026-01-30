@@ -1,5 +1,5 @@
 # HamSafar-Airlines
-A dynamic flight management system for the course CS355/CE373-Database Systems made using Python and SQL
+A dynamic flight management system for the course CS355/CE373-Database Systems made using Python and SQL. By Sarah Faisal Alvi, Noor-E-Hira and Ayesha Shahid
 
 For running:
 1) Create database by running CreatingDatabase.sql 
